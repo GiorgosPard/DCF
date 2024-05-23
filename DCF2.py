@@ -38,27 +38,27 @@ if ticker:
     stock = get_stock_data(ticker)
     info = stock.info
     
-    st.header(f"{info['shortName']} ({ticker})")
+    st.header(f"{info.get('shortName', 'N/A')} ({ticker})")
     
     # Display key metrics
     st.subheader('Key Metrics')
     metrics = {
-        'Previous Close': info['previousClose'],
-        'Market Cap': info['marketCap'],
-        'PE Ratio': info['trailingPE'],
-        'Forward PE Ratio': info['forwardPE'],
-        'PEG Ratio': info['pegRatio'],
-        'Price to Sales Ratio': info['priceToSalesTrailing12Months'],
-        'Price to Book Ratio': info['priceToBook'],
-        'Dividend Yield': info['dividendYield'],
+        'Previous Close': info.get('previousClose', 'N/A'),
+        'Market Cap': info.get('marketCap', 'N/A'),
+        'PE Ratio': info.get('trailingPE', 'N/A'),
+        'Forward PE Ratio': info.get('forwardPE', 'N/A'),
+        'PEG Ratio': info.get('pegRatio', 'N/A'),
+        'Price to Sales Ratio': info.get('priceToSalesTrailing12Months', 'N/A'),
+        'Price to Book Ratio': info.get('priceToBook', 'N/A'),
+        'Dividend Yield': info.get('dividendYield', 'N/A'),
     }
     st.table(pd.DataFrame(metrics.items(), columns=['Metric', 'Value']))
     
     # Fetch historical data for growth rates
     hist = stock.history(period="5y")
     revenue_growth = (hist['Close'].pct_change().mean()) * 100
-    profit_margin = info['profitMargins'] * 100
-    fcf_margin = (info['freeCashflow'] / info['totalRevenue']) * 100 if 'freeCashflow' in info and 'totalRevenue' in info else np.nan
+    profit_margin = info.get('profitMargins', np.nan) * 100
+    fcf_margin = (info.get('freeCashflow', np.nan) / info.get('totalRevenue', np.nan)) * 100 if info.get('freeCashflow') and info.get('totalRevenue') else np.nan
     
     # Historic metrics table
     st.subheader('Historical Metrics')
@@ -71,28 +71,27 @@ if ticker:
     
     # Analyst expectations
     st.subheader('Analyst Expectations')
-    st.write(f"1y Target Est: ${info['targetMeanPrice']:.2f}")
-    st.write(f"Recommendation: {info['recommendationKey'].capitalize()}")
-
+    st.write(f"1y Target Est: ${info.get('targetMeanPrice', 'N/A'):.2f}")
+    st.write(f"Recommendation: {info.get('recommendationKey', 'N/A').capitalize()}")
+    
     # Stock chart
     st.subheader('Stock Price Chart')
     st.line_chart(hist['Close'])
 
     # User input for DCF assumptions
     st.subheader('DCF Assumptions')
-    initial_fcf = st.number_input('Initial annual free cash flow (Billions $)', value=info['freeCashflow']/1000000000 if 'freeCashflow' in info else 0)
+    initial_fcf = st.number_input('Initial annual free cash flow (Billions $)', value=info.get('freeCashflow', 0) / 1000000000)
     growth_rate = st.number_input('Annual growth rate (%)', value=5.0) / 100
     terminal_growth_rate = st.number_input('Terminal growth rate (%)', value=2.0) / 100
     num_years = st.number_input('Number of years', value=5)
     tax_rate = st.number_input('Corporate tax rate (%)', value=21.0) / 100
-    equity_value = st.number_input('Market value of equity (Billions $)', value=info['marketCap']/1000000000)
-    debt_value = st.number_input('Market value of debt (Billions $)', value=info['totalDebt']/1000000000 if 'totalDebt' in info else 0)
+    equity_value = st.number_input('Market value of equity (Billions $)', value=info.get('marketCap', 0) / 1000000000)
+    debt_value = st.number_input('Market value of debt (Billions $)', value=info.get('totalDebt', 0) / 1000000000)
     cost_of_equity = st.number_input('Cost of equity (%)', value=8.0) / 100
     cost_of_debt = st.number_input('Cost of debt (%)', value=5.0) / 100
-    initial_fcf =initial_fcf*1000000000
-    debt_value=debt_value*1000000000
-    equity_value=equity_value*1000000000
-
+    initial_fcf = initial_fcf * 1000000000
+    debt_value = debt_value * 1000000000
+    equity_value = equity_value * 1000000000
 
     # Calculate WACC
     wacc = calculate_wacc(equity_value, debt_value, cost_of_equity, cost_of_debt, tax_rate)
@@ -104,21 +103,21 @@ if ticker:
     # Calculate quarterly FCF
     quarterly_fcf = [initial_fcf / 4 * (1 + growth_rate / 4) ** i for i in range(num_years * 4)]
     
-    st.write(f'Fair of the Company: Billion ${total_value/1000000000 :,.2f}')
-    fair_value_per_share = total_value/ info['sharesOutstanding']
+    st.write(f'Fair Value of the Company: Billion ${total_value / 1000000000:,.2f}')
+    fair_value_per_share = total_value / info.get('sharesOutstanding', 1)
     st.write(f'**Fair Value per Share:** ${fair_value_per_share:.2f}')
     myInt = 1000000000
     discounted_fcf1 = [x / myInt for x in discounted_fcf]
     discounted_fcf1 = [round(e, 2) for e in discounted_fcf1]
-    terminal_value1 = terminal_value/1000000000
-    terminal_value1="{:.2f}".format(terminal_value1)
+    terminal_value1 = terminal_value / 1000000000
+    terminal_value1 = "{:.2f}".format(terminal_value1)
     quarterly_fcf1 = [x / myInt for x in quarterly_fcf]
     st.write('Discounted Free Cash Flows:', discounted_fcf1, " Billion $")
     st.write('Terminal Value:', terminal_value1, " Billion $")
 
     # Plot quarterly FCF
     fig, ax = plt.subplots()
-    quarters = [f'Q{i+1}' for i in range(len(quarterly_fcf))]
+    quarters = [f'Q{i + 1}' for i in range(len(quarterly_fcf))]
     ax.plot(quarters, quarterly_fcf, marker='o')
     ax.set_title('Quarterly Free Cash Flows')
     ax.set_xlabel('Quarter')
