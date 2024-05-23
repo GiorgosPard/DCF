@@ -61,7 +61,7 @@ if ticker:
     # Check if both PE ratio and FCF are negative
     pe_ratio = info.get('trailingPE', None)
     fcf = info.get('freeCashflow', None)
-    negative_pe_and_fcf = (pe_ratio is not None and pe_ratio < 0) and (fcf is not None and fcf < 0)
+    negative_pe_and_fcf = (pe_ratio is None or pe_ratio < 0) and (fcf is not None and fcf < 0)
     
     if negative_pe_and_fcf:
         st.subheader('Alternative Valuation Using Price to Sales Ratio')
